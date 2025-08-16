@@ -4,5 +4,9 @@
     "agent": "./examples/react/react_weather_agent.py:app",
     "checkpointer": "./examples/react/react_weather_agent.py:checkpointer"
   },
-  "env": ".env"
+  "env": ".env",
+  "auth": {
+    "type": "Bearer",
+    "backend": "jwt"
+  }
 }

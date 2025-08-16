@@ -1,0 +1,28 @@
+# Production-ready FastAPI/Uvicorn requirements
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+
+# Authentication and security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+
+# Configuration and environment
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Database and caching (optional)
+psycopg2-binary>=2.9.0
+redis>=4.5.0
+
+# CLI tools
+click>=8.0.0
+
+# Core PyAgenity dependencies
+litellm>=1.75.0
+
+# Development and testing (optional)
+pytest>=7.0.0
+pytest-asyncio>=0.20.0
+httpx>=0.24.0

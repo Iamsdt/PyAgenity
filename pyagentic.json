@@ -1,0 +1,9 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "simple": "./examples/simple_agent.py:app"
+  },
+  "env": {},
+  "auth": null,
+  "dockerfile_lines": []
+}

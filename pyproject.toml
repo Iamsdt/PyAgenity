@@ -3,15 +3,50 @@ name = "pyagenity"
 version = "0.1.0"
 description = "PyAgenity is a Python framework for building, orchestrating, and managing multi-agent systems. Designed for flexibility and scalability, PyAgenity enables developers to create intelligent agents that collaborate, communicate, and solve complex tasks together."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "litellm>=1.75.0",
     "python-dotenv>=1.0.0",
+    # API server dependencies
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    # CLI dependencies
+    "click>=8.0.0",
+    # Optional database dependencies
+    "psycopg2-binary>=2.9.0; extra == 'postgres'",
+    "redis>=4.5.0; extra == 'redis'",
 ]
 
+[project.optional-dependencies]
+postgres = ["psycopg2-binary>=2.9.0"]
+redis = ["redis>=4.5.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.20.0",
+    "httpx>=0.24.0",
+    "ruff>=0.1.0",
+]
+all = ["psycopg2-binary>=2.9.0", "redis>=4.5.0"]
+
+[project.scripts]
+pyagentic = "cli.main:cli"
+
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=45", "wheel", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["pyagenity", "api", "cli"]
+
+[tool.setuptools.package-dir]
+pyagenity = "pyagenity"
+api = "api"
+cli = "cli"
 
 
 [tool.ruff]

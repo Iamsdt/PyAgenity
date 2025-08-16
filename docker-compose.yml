@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # Redis for caching and pub-sub
+  pyagenity-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data:/data
+
+  # PostgreSQL for persistent storage
+  pyagenity-postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: pyagenity
+      POSTGRES_USER: pyagenity
+      POSTGRES_PASSWORD: pyagenity_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pyagenity"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # PyAgenity API Server
+  pyagenity-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      pyagenity-redis:
+        condition: service_healthy
+      pyagenity-postgres:
+        condition: service_healthy
+    environment:
+      # Database configuration
+      DATABASE_URI: postgresql://pyagenity:pyagenity_password@pyagenity-postgres:5432/pyagenity
+      REDIS_URI: redis://pyagenity-redis:6379
+      
+      # PyAgenity configuration
+      PYAGENTIC_CONFIG: /app/examples/react/pyagentic.json
+      
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      
+      # Optional: LLM API keys
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    volumes:
+      - ./examples:/app/examples:ro
+      - ./.env:/app/.env:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Optional: Nginx reverse proxy
+  pyagenity-nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - pyagenity-api
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    profiles:
+      - production
+
+volumes:
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local

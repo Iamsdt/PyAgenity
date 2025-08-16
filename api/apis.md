@@ -1,13 +1,3 @@
-Task In library
-1. Dependency Injection
-2. streaming response
-
-API with python
-with workflow run
-1. invoke
-2. stream
-3. websocket (Mainly for dev environment)
-
 # threads
 1. v1/threads -> GET
 2. v1/threads/{thread_id} -> GET
