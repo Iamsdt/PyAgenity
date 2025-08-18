@@ -13,8 +13,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+
 import click
+import typer
 from dotenv import load_dotenv
+import threading
 
 
 def load_config(config_path: str = "pyagentic.json") -> dict[str, Any]:
@@ -148,9 +151,123 @@ def run_docker_build(image_tag: str, dockerfile_path: str, context_path: str) ->
 
 @click.group()
 @click.version_option(version="1.0.0", prog_name="pyagentic")
+
+
+
+
+# --- Click CLI commands ---
+@click.command()
+@click.option("-t", "--tag", required=True, help="Docker image tag (e.g., my-agent:latest)")
+@click.option(
+    "-c",
+    "--config",
+    default="pyagentic.json",
+    help="Path to configuration file (default: pyagentic.json)",
+)
+@click.option("--no-cache", is_flag=True, help="Build without using cache")
+def build(tag: str, config: str, no_cache: bool):
+    ... # existing build function body
+
+@click.command()
+@click.option(
+    "-c",
+    "--config",
+    default="pyagentic.json",
+    help="Path to configuration file (default: pyagentic.json)",
+)
+def validate(config: str):
+    ... # existing validate function body
+
+@click.command()
+@click.option("--name", default="my-agent", help="Project name (default: my-agent)")
+@click.option(
+    "--dir",
+    "directory",
+    default=".",
+    help="Directory to create project in (default: current directory)",
+)
+def init(name: str, directory: str):
+    ... # existing init function body
+
+# --- Click CLI group ---
+@click.group()
+@click.version_option(version="1.0.0", prog_name="pyagentic")
 def cli():
     """PyAgenity CLI - Build and deploy PyAgenity agents."""
     pass
+
+cli.add_command(build)
+cli.add_command(validate)
+cli.add_command(init)
+
+# --- Typer integration and new commands ---
+app = typer.Typer(help="PyAgenity CLI - Build, run, and deploy PyAgenity agents.")
+app.add_typer(typer.main.get_command(cli), name="legacy", help="Legacy Click commands")
+
+@app.command()
+def api(
+    host: str = typer.Option("127.0.0.1", help="Host to bind (default: 127.0.0.1)"),
+    port: int = typer.Option(8000, help="Port to bind (default: 8000)"),
+    reload: bool = typer.Option(True, help="Enable auto-reload (dev mode)")
+):
+    """Start the API server in dev mode using uvicorn."""
+    import subprocess
+    typer.echo(f"Starting API server at http://{host}:{port} (reload={reload})...")
+    cmd = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "api.server:app",
+        "--host",
+        host,
+        "--port",
+        str(port),
+    ]
+    if reload:
+        cmd.append("--reload")
+    subprocess.run(cmd)
+
+@app.command()
+def run(
+    host: str = typer.Option("127.0.0.1", help="Host to bind API (default: 127.0.0.1)"),
+    port: int = typer.Option(8000, help="Port to bind API (default: 8000)"),
+    react_dir: str = typer.Option("ui/app", help="Path to React app directory (default: ui/app)")
+):
+    """Start the API server and React app for development."""
+    import subprocess
+
+    def start_api():
+        cmd = [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "api.server:app",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--reload",
+        ]
+        typer.echo(f"[API] Starting at http://{host}:{port} ...")
+        subprocess.run(cmd)
+
+    def start_react():
+        typer.echo(f"[React] Starting dev server in {react_dir} ...")
+        subprocess.run(["npm", "install"], cwd=react_dir)
+        subprocess.run(["npm", "run", "dev"], cwd=react_dir)
+
+    api_thread = threading.Thread(target=start_api)
+    react_thread = threading.Thread(target=start_react)
+
+    api_thread.start()
+    react_thread.start()
+
+    api_thread.join()
+    react_thread.join()
+
+
+if __name__ == "__main__":
+    app()
 
 
 @cli.command()
@@ -343,5 +460,76 @@ app = graph.compile(checkpointer=checkpointer)
         raise click.ClickException(f"Project initialization failed: {e}") from e
 
 
+
+# --- New Typer commands ---
+
+@app.command()
+def api(
+    host: str = typer.Option("127.0.0.1", help="Host to bind (default: 127.0.0.1)"),
+    port: int = typer.Option(8000, help="Port to bind (default: 8000)"),
+    reload: bool = typer.Option(True, help="Enable auto-reload (dev mode)")
+):
+    """Start the API server in dev mode using uvicorn."""
+    import subprocess
+app.add_typer(typer.main.get_command(cli), name="legacy", help="Legacy Click commands")
+
+@app.command()
+    typer.echo(f"Starting API server at http://{host}:{port} (reload={reload})...")
+    cmd = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "api.server:app",
+        "--host",
+        host,
+        "--port",
+        str(port),
+    ]
+    if reload:
+        cmd.append("--reload")
+    subprocess.run(cmd)
+
+
+            # --- New Typer commands ---
+
+@app.command()
+def run(
+    host: str = typer.Option("127.0.0.1", help="Host to bind API (default: 127.0.0.1)"),
+    port: int = typer.Option(8000, help="Port to bind API (default: 8000)"),
+    react_dir: str = typer.Option("ui/app", help="Path to React app directory (default: ui/app)")
+):
+    """Start the API server and React app for development."""
+    import subprocess
+
+    def start_api():
+        cmd = [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "api.server:app",
+            "--host",
+            host,
+            "--port",
+            str(port),
+            "--reload",
+        ]
+        typer.echo(f"[API] Starting at http://{host}:{port} ...")
+            app()
+
+    def start_react():
+        typer.echo(f"[React] Starting dev server in {react_dir} ...")
+        subprocess.run(["npm", "install"], cwd=react_dir)
+        subprocess.run(["npm", "run", "dev"], cwd=react_dir)
+
+    api_thread = threading.Thread(target=start_api)
+    react_thread = threading.Thread(target=start_react)
+
+    api_thread.start()
+    react_thread.start()
+
+    api_thread.join()
+    react_thread.join()
+
+
 if __name__ == "__main__":
-    cli()
+    app()
